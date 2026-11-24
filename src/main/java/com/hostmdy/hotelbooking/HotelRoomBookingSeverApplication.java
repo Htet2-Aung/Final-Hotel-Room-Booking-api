@@ -1,6 +1,8 @@
 package com.hostmdy.hotelbooking;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,30 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
   @Autowired
   RoomRepository roomRepository;
   
+  // Demo photos, matched to the column titles of the admin Room List table:
+  // image1 = ROOM'S BED, image2 = ROOM'S BATH, image3 = FRONT VIEW.
+  // These mirror the images currently used in the app: the Deluxe set and the
+  // Standard FRONT VIEW are Wikimedia Commons photos; the Standard type photo
+  // and the two Standard rooms' bed/bath photos were uploaded through the admin
+  // UI and are served from the backend's uploads/ folder (keep those files, or
+  // the seeded URLs will stop loading).
+  private static final String DELUXE_BED = "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Hotel_Room_Chicago_Hilton2.jpg/960px-Hotel_Room_Chicago_Hilton2.jpg";
+  private static final String DELUXE_BATH = "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/USVI_IMG_5256_-_Modern_white_bathroom_with_a_built-in_bathtub_and_shower_featuring_neatly_stacked_pillows_on_the_side.jpg/960px-USVI_IMG_5256_-_Modern_white_bathroom_with_a_built-in_bathtub_and_shower_featuring_neatly_stacked_pillows_on_the_side.jpg";
+  private static final String DELUXE_FRONT_VIEW = "https://upload.wikimedia.org/wikipedia/commons/9/9b/Superior_Bed_Room_at_Shaza_Al_Madina.jpg";
+  private static final String STANDARD_BED = "http://localhost:8181/uploads/155a2ebc-ff37-42f2-9eab-09cd2c6d13aa.jpg";
+  private static final String STANDARD_FRONT_VIEW = "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/DSC_6622_Cozy_modern_hotel_room_with_a_large_king_bed_colorful_wall_art_and_a_minimalist_seating_area.jpg/960px-DSC_6622_Cozy_modern_hotel_room_with_a_large_king_bed_colorful_wall_art_and_a_minimalist_seating_area.jpg";
+  private static final String STANDARD_101_BED = "http://localhost:8181/uploads/9cdc12dd-9e7d-4298-8b04-03ad37ed2858.jpg";
+  private static final String STANDARD_101_BATH = "http://localhost:8181/uploads/fad96bd1-1c94-4bfb-afdd-ef5470616f36.jpg";
+  private static final String STANDARD_102_BED = "http://localhost:8181/uploads/b741c2e2-5cb0-477d-9e6d-1b597bd91279.jpg";
+  private static final String STANDARD_102_BATH = "http://localhost:8181/uploads/ef11bd71-b17e-4dd9-9338-2112562930a9.jpg";
+
+  // Descriptions of the 4 seeded demo rooms - also used to recognize those rows in an
+  // existing database so their photos can be repaired (see refreshDemoImages()).
+  private static final String DELUXE_ROOM_301_DESC = "<p>Deluxe Room 301 - high floor with panoramic sea view.</p>";
+  private static final String DELUXE_ROOM_302_DESC = "<p>Deluxe Room 302 - corner room with two balconies.</p>";
+  private static final String STANDARD_ROOM_101_DESC = "<p>Standard Room 101 - quiet garden-side room.</p>";
+  private static final String STANDARD_ROOM_102_DESC = "<p>Standard Room 102 - bright room near the lobby.</p>";
+
   public static void main(String[] args) {
     SpringApplication.run(HotelRoomBookingSeverApplication.class, args);
   }
@@ -45,7 +71,8 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
   public void run(String... args) throws Exception {
     // Seeds demo accounts and sample rooms wherever they are MISSING, so both a
     // fresh clone and an older database end up with a working admin login.
-    // Each item is only created when absent - existing rows are never touched.
+    // Each item is only created when absent - existing rows are never touched,
+    // except the demo photos, which refreshDemoImages() repairs to the verified set.
     if (userService.findByUsername("admin@gmail.com").isEmpty()) {
       Role adminRole = new Role();
       adminRole.setName("ROLE_ADMIN");
@@ -84,9 +111,9 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
       RoomType deluxe = new RoomType();
       deluxe.setName("Deluxe Room");
       deluxe.setPrice(120.0);
-      deluxe.setDescription("<p>Spacious room with a king-size bed, sea view balcony and rain shower.</p>");
+      deluxe.setDescription("Spacious room with a king-size bed, sea view balcony and rain shower.");
       deluxe.setFacilities("<ul><li>King-size bed</li><li>Sea view balcony</li><li>Free Wi-Fi</li><li>Air conditioning</li><li>Mini bar</li></ul>");
-      deluxe.setImage("https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Modern_double_bed_in_a_decorated_hotel_room.jpg/960px-Modern_double_bed_in_a_decorated_hotel_room.jpg");
+      deluxe.setImage(DELUXE_BED);
       deluxe = roomTypeRepository.save(deluxe);
 
       RoomType standard = new RoomType();
@@ -94,54 +121,50 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
       standard.setPrice(60.0);
       standard.setDescription("<p>Cozy room with a queen-size bed, perfect for short city stays.</p>");
       standard.setFacilities("<ul><li>Queen-size bed</li><li>Free Wi-Fi</li><li>Air conditioning</li><li>Smart TV</li></ul>");
-      standard.setImage("https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/Bed_at_hotel_room_at_Hotel_Palace_Tallinn.jpg/960px-Bed_at_hotel_room_at_Hotel_Palace_Tallinn.jpg");
+      standard.setImage(STANDARD_BED);
       standard = roomTypeRepository.save(standard);
 
-      // One photo set per room type, matched to the column titles of the admin
-      // Room List table: image1 = ROOM'S BED, image2 = ROOM'S BATH, image3 = ROOM'S TOILET.
-      // All 4 seeded rooms (2 Deluxe + 2 Standard) reuse their type's set, and every
-      // photo is a verified Wikimedia Commons image whose subject matches its column.
-      String deluxeBed = "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Modern_double_bed_in_a_decorated_hotel_room.jpg/960px-Modern_double_bed_in_a_decorated_hotel_room.jpg";
-      String deluxeBath = "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Futu-Changsheng-Hotel-bathroom-0051.jpg/960px-Futu-Changsheng-Hotel-bathroom-0051.jpg";
-      String deluxeToilet = "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Premier_Inn_bathroom_toilet%2C_Horsham%2C_West_Sussex.jpg/960px-Premier_Inn_bathroom_toilet%2C_Horsham%2C_West_Sussex.jpg";
-      String standardBed = "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/Bed_at_hotel_room_at_Hotel_Palace_Tallinn.jpg/960px-Bed_at_hotel_room_at_Hotel_Palace_Tallinn.jpg";
-      String standardBath = "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Hotel_Barcelona_Catedral_Bathroom_2010.JPG/960px-Hotel_Barcelona_Catedral_Bathroom_2010.JPG";
-      String standardToilet = "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/USVI_IMG_5198_-_Minimalist_white_bathroom_with_light_wood_flooring_a_sleek_vanity_and_a_modern_toilet_featuring_clean_lines_and_soft_lighting.jpg/960px-USVI_IMG_5198_-_Minimalist_white_bathroom_with_light_wood_flooring_a_sleek_vanity_and_a_modern_toilet_featuring_clean_lines_and_soft_lighting.jpg";
+      // Photo sets are the class-level constants above (shared with refreshDemoImages()).
 
       Room deluxeRoom1 = new Room();
-      deluxeRoom1.setDescription("<p>Deluxe Room 301 - high floor with panoramic sea view.</p>");
-      deluxeRoom1.setImage1(deluxeBed);
-      deluxeRoom1.setImage2(deluxeBath);
-      deluxeRoom1.setImage3(deluxeToilet);
+      deluxeRoom1.setDescription(DELUXE_ROOM_301_DESC);
+      deluxeRoom1.setImage1(DELUXE_BED);
+      deluxeRoom1.setImage2(DELUXE_BATH);
+      deluxeRoom1.setImage3(DELUXE_FRONT_VIEW);
       deluxeRoom1.setRoomType(deluxe);
       roomRepository.save(deluxeRoom1);
 
       Room deluxeRoom2 = new Room();
-      deluxeRoom2.setDescription("<p>Deluxe Room 302 - corner room with two balconies.</p>");
-      deluxeRoom2.setImage1(deluxeBed);
-      deluxeRoom2.setImage2(deluxeBath);
-      deluxeRoom2.setImage3(deluxeToilet);
+      deluxeRoom2.setDescription(DELUXE_ROOM_302_DESC);
+      deluxeRoom2.setImage1(DELUXE_BED);
+      deluxeRoom2.setImage2(DELUXE_BATH);
+      deluxeRoom2.setImage3(DELUXE_FRONT_VIEW);
       deluxeRoom2.setRoomType(deluxe);
       roomRepository.save(deluxeRoom2);
 
       Room standardRoom1 = new Room();
-      standardRoom1.setDescription("<p>Standard Room 101 - quiet garden-side room.</p>");
-      standardRoom1.setImage1(standardBed);
-      standardRoom1.setImage2(standardBath);
-      standardRoom1.setImage3(standardToilet);
+      standardRoom1.setDescription(STANDARD_ROOM_101_DESC);
+      standardRoom1.setImage1(STANDARD_101_BED);
+      standardRoom1.setImage2(STANDARD_101_BATH);
+      standardRoom1.setImage3(STANDARD_FRONT_VIEW);
       standardRoom1.setRoomType(standard);
       roomRepository.save(standardRoom1);
 
       Room standardRoom2 = new Room();
-      standardRoom2.setDescription("<p>Standard Room 102 - bright room near the lobby.</p>");
-      standardRoom2.setImage1(standardBed);
-      standardRoom2.setImage2(standardBath);
-      standardRoom2.setImage3(standardToilet);
+      standardRoom2.setDescription(STANDARD_ROOM_102_DESC);
+      standardRoom2.setImage1(STANDARD_102_BED);
+      standardRoom2.setImage2(STANDARD_102_BATH);
+      standardRoom2.setImage3(STANDARD_FRONT_VIEW);
       standardRoom2.setRoomType(standard);
       roomRepository.save(standardRoom2);
 
       System.out.println("Seeded 2 room types and 4 sample rooms.");
     }
+
+    // Fills in any MISSING demo photos in an existing database (photos already
+    // set through the admin UI are never overwritten), so a backend restart is
+    // enough to fix blank image fields from older seeds.
+    refreshDemoImages();
 
     // Always prints the current data state on startup, so you can see in the
     // console whether seeding already happened or was skipped.
@@ -180,7 +203,75 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
 //    userRoles2.add(new UserRoles(user2, role2));
 //    
 //    userService.createUser(user2, userRoles2);
-    
+
+  }
+
+  /**
+   * Fills in MISSING photos of the seeded demo room types and rooms on startup.
+   * Rows are recognized by their seeded name / description; only blank image
+   * fields are repaired, so photos set through the admin UI are never overwritten.
+   */
+  private void refreshDemoImages() {
+    Map<String, String[]> demoRoomImages = new LinkedHashMap<>();
+    // Keys are HTML-free so rows match whether their stored description is the
+    // seeded "<p>...</p>" text or a plain/variant version saved by ReactQuill.
+    demoRoomImages.put(plainDescription(DELUXE_ROOM_301_DESC), new String[] { DELUXE_BED, DELUXE_BATH, DELUXE_FRONT_VIEW });
+    demoRoomImages.put(plainDescription(DELUXE_ROOM_302_DESC), new String[] { DELUXE_BED, DELUXE_BATH, DELUXE_FRONT_VIEW });
+    demoRoomImages.put(plainDescription(STANDARD_ROOM_101_DESC), new String[] { STANDARD_101_BED, STANDARD_101_BATH, STANDARD_FRONT_VIEW });
+    demoRoomImages.put(plainDescription(STANDARD_ROOM_102_DESC), new String[] { STANDARD_102_BED, STANDARD_102_BATH, STANDARD_FRONT_VIEW });
+
+    int fixedRooms = 0;
+    for (Room room : roomRepository.findAll()) {
+      // Rooms saved through the admin UI carry rich-text markup in the
+      // description ("<p>...</p>" from ReactQuill), so compare HTML-free text.
+      String[] expected = demoRoomImages.get(plainDescription(room.getDescription()));
+      // Only fill in missing photos - never overwrite images set via the admin UI.
+      if (expected != null
+          && (isBlank(room.getImage1()) || isBlank(room.getImage2()) || isBlank(room.getImage3()))) {
+        room.setImage1(expected[0]);
+        room.setImage2(expected[1]);
+        room.setImage3(expected[2]);
+        roomRepository.save(room);
+        fixedRooms++;
+      }
+    }
+
+    int fixedRoomTypes = 0;
+    for (RoomType roomType : roomTypeRepository.findAll()) {
+      if ("Deluxe Room".equals(roomType.getName()) && isBlank(roomType.getImage())) {
+        roomType.setImage(DELUXE_BED);
+        roomTypeRepository.save(roomType);
+        fixedRoomTypes++;
+      } else if ("Standard Room".equals(roomType.getName()) && isBlank(roomType.getImage())) {
+        roomType.setImage(STANDARD_BED);
+        roomTypeRepository.save(roomType);
+        fixedRoomTypes++;
+      }
+    }
+
+    if (fixedRooms > 0 || fixedRoomTypes > 0) {
+      System.out.println("Repaired demo photos -> room types: " + fixedRoomTypes + ", rooms: " + fixedRooms);
+    }
+  }
+
+  private static boolean isBlank(String value) {
+    return value == null || value.trim().isEmpty();
+  }
+
+  /**
+   * Strips HTML tags/entities and collapses whitespace so the seeded plain-text
+   * descriptions still match after a room was edited with the ReactQuill editor.
+   */
+  private static String plainDescription(String description) {
+    if (description == null) {
+      return null;
+    }
+    return description
+        .replaceAll("<[^>]*>", "")
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replaceAll("\\s+", " ")
+        .trim();
   }
 
 }

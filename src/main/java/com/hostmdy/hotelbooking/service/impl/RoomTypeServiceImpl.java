@@ -60,6 +60,7 @@ public class RoomTypeServiceImpl implements RoomTypeService{
 			oldroomType.setDescription(roomType.getDescription());
 			oldroomType.setPrice(roomType.getPrice());
 			oldroomType.setFacilities(roomType.getFacilities());
+			oldroomType.setImage(roomType.getImage());
 		
 			return roomTypeRepository.save(oldroomType);
 		}
