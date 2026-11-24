@@ -59,7 +59,6 @@ public class PaymentServiceImpl implements PaymentService {
 	      original.setHolderName(payment.getHolderName());
 	      original.setCardNo(payment.getCardNo());
 	      original.setCardType(payment.getCardType());
-	      original.setCvc(payment.getCvc());
 	    }
 	    
 	    return paymentRepository.save(payment);

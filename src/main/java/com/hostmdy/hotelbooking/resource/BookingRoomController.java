@@ -1,5 +1,6 @@
 package com.hostmdy.hotelbooking.resource;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ import com.hostmdy.hotelbooking.domain.BookingRoomBooking;
 import com.hostmdy.hotelbooking.domain.Room;
 import com.hostmdy.hotelbooking.domain.RoomType;
 import com.hostmdy.hotelbooking.payload.BookingWithRoomDTO;
+import com.hostmdy.hotelbooking.service.ActivityLogService;
 import com.hostmdy.hotelbooking.service.BookingRoomService;
 import com.hostmdy.hotelbooking.service.BookingService;
 import com.hostmdy.hotelbooking.service.MapValidationErrorService;
@@ -37,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 public class BookingRoomController {
 	
 	private final BookingRoomService bookingRoomService;
+	private final ActivityLogService activityLogService;
 	private final BookingService bookingService;
 	private final RoomService roomService;
 	private final MapValidationErrorService mErrorService;
@@ -214,10 +217,30 @@ public class BookingRoomController {
 	}
 	
 	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<String> deleteBookingRoomById(@PathVariable Long id){
-		
+	public ResponseEntity<String> deleteBookingRoomById(@PathVariable Long id, Principal principal){
+
+		Optional<BookingRoom> bookingRoomOpt = bookingRoomService.findById(id);
+		String details = "Booking Room #"+id+" was deleted";
+		if (bookingRoomOpt.isPresent()) {
+			BookingRoom bookingRoom = bookingRoomOpt.get();
+			StringBuilder sb = new StringBuilder("Deleted Booking Room #").append(id)
+					.append(" (").append(bookingRoom.getCheckIn()).append(" to ").append(bookingRoom.getCheckOut()).append(")");
+			if (bookingRoom.getBooking() != null) {
+				sb.append(" for Booking #").append(bookingRoom.getBooking().getId());
+				if (bookingRoom.getBooking().getGuestName() != null) {
+					sb.append(" (guest: ").append(bookingRoom.getBooking().getGuestName()).append(")");
+				}
+			}
+			if (bookingRoom.getRoom() != null) {
+				sb.append(", Room #").append(bookingRoom.getRoom().getId());
+			}
+			details = sb.toString();
+		}
+
 		bookingRoomService.deleteById(id);
-		
+		String actor = principal != null ? principal.getName() : "admin";
+		activityLogService.log("BOOKING_ROOM_DELETED", details+" by "+actor, actor);
+
 		return new ResponseEntity<String>("Booking Room id: "+ id +" is deleted.",HttpStatus.OK);
 	}
 	
@@ -242,9 +265,13 @@ public class BookingRoomController {
 	    public BookingRoom updateBookingRoom(
 	            @PathVariable Long bookingId,
 	            @PathVariable Long roomId,
-	            @RequestBody BookingRoom updatedBookingRoom
+	            @RequestBody BookingRoom updatedBookingRoom,
+	            Principal principal
 	    ) {
-	        return bookingRoomService.updateBookingRoom(bookingId, roomId, updatedBookingRoom);
+	        BookingRoom saved = bookingRoomService.updateBookingRoom(bookingId, roomId, updatedBookingRoom);
+	        String actor = principal != null ? principal.getName() : "admin";
+	        activityLogService.log("BOOKING_ROOM_UPDATED", "Updated Booking Room (Booking #"+bookingId+", Room #"+roomId+": "+saved.getCheckIn()+" to "+saved.getCheckOut()+") by "+actor, actor);
+	        return saved;
 	    }
 
 	    @GetMapping("/bookingWithRoom/{bookingId}")

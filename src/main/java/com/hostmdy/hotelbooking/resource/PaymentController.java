@@ -1,5 +1,6 @@
 package com.hostmdy.hotelbooking.resource;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hostmdy.hotelbooking.domain.Booking;
 import com.hostmdy.hotelbooking.domain.Payment;
+import com.hostmdy.hotelbooking.service.ActivityLogService;
 import com.hostmdy.hotelbooking.service.BookingService;
 import com.hostmdy.hotelbooking.service.MapValidationErrorService;
 import com.hostmdy.hotelbooking.service.PaymentService;
@@ -33,6 +35,7 @@ public class PaymentController {
 
 	private final PaymentService paymentService;
 	private final BookingService bookingService;
+	private final ActivityLogService activityLogService;
 	private final MapValidationErrorService mapErrorService;
 
 	
@@ -70,22 +73,40 @@ public class PaymentController {
 		  payment.setBooking(booking);
 
 		  Payment createPayment = paymentService.savePayment(payment, booking);
+
+		  activityLogService.log("PAYMENT_CREATED", "Received "+describePayment(createPayment), booking.getUsername() != null ? booking.getUsername() : "guest");
+
 		  return new ResponseEntity<Payment>(createPayment,HttpStatus.CREATED);
 
 	}
 
 	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<String> deletePaymentById(@PathVariable Long id) {
+	public ResponseEntity<String> deletePaymentById(@PathVariable Long id, Principal principal) {
+		Optional<Payment> paymentOpt = paymentService.findById(id);
+		String details = "Payment #"+id+" was deleted";
+		String username = "admin";
+		if (paymentOpt.isPresent()) {
+			Payment payment = paymentOpt.get();
+			details = "Deleted "+describePayment(payment);
+			Booking booking = payment.getBooking();
+			if (booking != null && booking.getUsername() != null) {
+				username = booking.getUsername();
+			}
+		}
 		paymentService.deleteById(id);
+		String actor = principal != null ? principal.getName() : username;
+		activityLogService.log("PAYMENT_DELETED", details+" by "+actor, actor);
 		return new ResponseEntity<String>("Deleted", HttpStatus.OK);
 
 	}
 	@PostMapping("/update")
-	public ResponseEntity<?> updatePayment(@RequestBody Payment payment){
+	public ResponseEntity<?> updatePayment(@RequestBody Payment payment, Principal principal){
 		
 		Payment updatedPayment=paymentService.UpdatPayment(payment);
 		
 		if(updatedPayment != null) {
+			  String actor = principal != null ? principal.getName() : "admin";
+			  activityLogService.log("PAYMENT_UPDATED", "Updated "+describePayment(updatedPayment)+" by "+actor, actor);
 		      return new ResponseEntity<Payment>(updatedPayment,HttpStatus.OK);
 		    }else {
 		      return new ResponseEntity<String>("PAYMENT type is not found",HttpStatus.NOT_FOUND);
@@ -100,5 +121,27 @@ public class PaymentController {
 			return new ResponseEntity<String>("Payment Not Found", HttpStatus.NOT_FOUND);
 		}
 		return new ResponseEntity<Payment>(paymOptional.get(), HttpStatus.OK);
+	}
+
+	private String describePayment(Payment payment) {
+		StringBuilder sb = new StringBuilder("Payment ");
+		sb.append(payment.getInvoiceNo() != null ? payment.getInvoiceNo() : "#"+payment.getId());
+		if (payment.getTotal() != null) {
+			sb.append(": ").append(String.format("%.0f", payment.getTotal())).append(" MMK");
+		}
+		if (payment.getCardType() != null) {
+			sb.append(" via ").append(payment.getCardType());
+		}
+		if (payment.getHolderName() != null) {
+			sb.append(" (holder: ").append(payment.getHolderName()).append(")");
+		}
+		Booking booking = payment.getBooking();
+		if (booking != null) {
+			sb.append(" for Booking #").append(booking.getId());
+			if (booking.getGuestName() != null) {
+				sb.append(" (guest: ").append(booking.getGuestName()).append(")");
+			}
+		}
+		return sb.toString();
 	}
 }

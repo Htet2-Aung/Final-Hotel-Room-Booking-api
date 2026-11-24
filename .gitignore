@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local run logs ###
+*.log
+
+### Uploaded images (local runtime storage) ###
+uploads/

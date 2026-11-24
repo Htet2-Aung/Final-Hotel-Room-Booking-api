@@ -1,5 +1,6 @@
 package com.hostmdy.hotelbooking.resource;
 
+import java.security.Principal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import com.hostmdy.hotelbooking.domain.security.Role;
 import com.hostmdy.hotelbooking.domain.security.UserRoles;
 import com.hostmdy.hotelbooking.payload.JwtLoginSuccessResponse;
 import com.hostmdy.hotelbooking.payload.LoginRequest;
+import com.hostmdy.hotelbooking.service.ActivityLogService;
 import com.hostmdy.hotelbooking.service.MapValidationErrorService;
 import com.hostmdy.hotelbooking.service.RoleService;
 import com.hostmdy.hotelbooking.service.UserService;
@@ -49,6 +51,7 @@ public class UserController {
 	private final AuthenticationManager authenticationManager;
 	private final JwtTokenProvider tokenProvider;
 	private final MapValidationErrorService mapErrorService;
+	private final ActivityLogService activityLogService;
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, BindingResult result) {
 
@@ -63,14 +66,22 @@ public class UserController {
 			return errorResponse;
  
 		
-		Authentication authentication = authenticationManager.authenticate(
-			new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),loginRequest.getPassword())
-				);
+		Authentication authentication;
+		try {
+			authentication = authenticationManager.authenticate(
+				new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),loginRequest.getPassword())
+					);
+		} catch (Exception e) {
+			activityLogService.log("USER_LOGIN_FAILED", "Failed login attempt for username: "+loginRequest.getUsername(), loginRequest.getUsername());
+			throw e;
+		}
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 		
 		String jwt = TOKEN_PREFIX+tokenProvider.generateToken(authentication);
 		
 		List<String> roleList = userOpt.get().getUserRoles().stream().map(ur -> ur.getRole().getName()).toList();
+		
+		activityLogService.log("USER_LOGIN", "User logged in: "+userOpt.get().getUsername(), userOpt.get().getUsername());
 		
 		return ResponseEntity.ok(new JwtLoginSuccessResponse(true,jwt,userOpt.get(),roleList));
 		
@@ -108,7 +119,9 @@ public class UserController {
 		Set<UserRoles> userRoles = new HashSet<>();
 		userRoles.add(new UserRoles(user, roleOpt.get()));
 
-		return new ResponseEntity<User>(userService.createUser(user, userRoles), HttpStatus.CREATED);
+		User createdUser = userService.createUser(user, userRoles);
+		activityLogService.log("USER_REGISTERED", "New user registered: "+createdUser.getUsername(), createdUser.getUsername());
+		return new ResponseEntity<User>(createdUser, HttpStatus.CREATED);
 	}
 
 	@GetMapping("/all")
@@ -123,23 +136,39 @@ public class UserController {
 	}
 
 	@PutMapping("/update")
-	public ResponseEntity<User> update(@RequestBody User user) {
+	public ResponseEntity<User> update(@RequestBody User user, Principal principal) {
 
-		return new ResponseEntity<User>(userService.updateUser(user), HttpStatus.OK);
+		User updateUser = userService.updateUser(user);
+		String actor = principal != null ? principal.getName() : updateUser.getUsername();
+		activityLogService.log("USER_UPDATED", "User '"+updateUser.getUsername()+"' (#"+updateUser.getId()+") profile updated by "+actor, actor);
+
+		return new ResponseEntity<User>(updateUser, HttpStatus.OK);
 
 	}
 	
 	@PutMapping("/updatePassword")
-	public ResponseEntity<User> updatePassword(@RequestBody User user) {
+	public ResponseEntity<User> updatePassword(@RequestBody User user, Principal principal) {
 
-		return new ResponseEntity<User>(userService.updatePassword(user), HttpStatus.OK);
+		User updatePassword = userService.updatePassword(user);
+		String actor = principal != null ? principal.getName() : updatePassword.getUsername();
+		activityLogService.log("PASSWORD_CHANGED", "Password changed for user '"+updatePassword.getUsername()+"' by "+actor, actor);
+
+		return new ResponseEntity<User>(updatePassword, HttpStatus.OK);
 		 
 	}
 
 
 	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<String> deleteUserById(@PathVariable Long id) {
+	public ResponseEntity<String> deleteUserById(@PathVariable Long id, Principal principal) {
+		Optional<User> userOpt = userService.findById(id);
+		String details = "User Id-"+id+" was deleted";
+		if (userOpt.isPresent()) {
+			User target = userOpt.get();
+			details = "Deleted user '"+target.getUsername()+"' ("+target.getFirstname()+" "+target.getLastname()+")";
+		}
 		userService.deleteById(id);
+		String actor = principal != null ? principal.getName() : "admin";
+		activityLogService.log("USER_DELETED", details+" by "+actor, actor);
 		return new ResponseEntity<String>("User Id-" + id + " is deleted!", HttpStatus.OK);
 
 	}

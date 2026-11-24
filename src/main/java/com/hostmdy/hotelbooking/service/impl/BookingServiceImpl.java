@@ -121,17 +121,18 @@ public class BookingServiceImpl implements BookingService {
               booking.setNrc(booking.getNrc());
               booking.setPhone(booking.getPhone());
               booking.setCountryOfOrigin(booking.getCountryOfOrigin());
-              booking.setUsername(user.getUsername());
 //              booking.setTotalAdults(booking.getTotalAdults());
 //              booking.setTotalChildren(booking.getTotalChildren());
               booking.setSpecialRequest(booking.getSpecialRequest());
               booking.setStatuss(SendEmail.Confirmed);
             
         }
-        user.getBooking().add(updatedBooking);
-        booking.setUser(user);
-        
-        userRepository.save(user);
+        if (user != null) {
+            booking.setUsername(user.getUsername());
+            user.getBooking().add(updatedBooking);
+            booking.setUser(user);
+            userRepository.save(user);
+        }
       
 
 

@@ -22,6 +22,7 @@ import com.hostmdy.hotelbooking.domain.BookingRoom;
 import com.hostmdy.hotelbooking.domain.Room;
 import com.hostmdy.hotelbooking.domain.SendEmail;
 import com.hostmdy.hotelbooking.domain.User;
+import com.hostmdy.hotelbooking.service.ActivityLogService;
 import com.hostmdy.hotelbooking.service.BookingService;
 import com.hostmdy.hotelbooking.service.MapValidationErrorService;
 import com.hostmdy.hotelbooking.service.UserService;
@@ -37,6 +38,7 @@ public class BookingController {
 
 	private final BookingService bookingService;
 	private final UserService userService;
+	private final ActivityLogService activityLogService;
 	private final MapValidationErrorService mapErrorService;
 
 	
@@ -78,8 +80,9 @@ public class BookingController {
 		booking.setStatuss(SendEmail.Pending);
 		
 		Booking createBooking = bookingService.save(booking,principal.getName());
-		
-		
+
+		activityLogService.log("BOOKING_CREATED", "Booking #"+createBooking.getId()+" created for guest "+createBooking.getGuestName(), principal.getName());
+
 		return new ResponseEntity<Booking>(createBooking,HttpStatus.CREATED);
 		
 	}
@@ -90,7 +93,13 @@ public class BookingController {
 		Booking bookingforUser = bookingService.findById(bookingId).get();
 		System.out.println("Booking controller with booking:"+bookingforUser);
 		System.out.println("Booking controller with booking:"+bookingforUser.getUsername());
-		User user= userService.findByUsername(bookingforUser.getUsername()).get();
+		User user = null;
+		if (bookingforUser.getUsername() != null) {
+			Optional<User> userOpt = userService.findByUsername(bookingforUser.getUsername());
+			if (userOpt.isPresent()) {
+				user = userOpt.get();
+			}
+		}
 		System.out.println("Booking controller with user:"+user);
 	
 		
@@ -99,8 +108,9 @@ public class BookingController {
 		
 		
 		Booking updatedBooking=bookingService.updateBooking(bookingId,booking,user);
-		
+
 		if(updatedBooking != null) {
+			activityLogService.log("BOOKING_CONFIRMED", "Booking #"+bookingId+" ("+updatedBooking.getGuestName()+") confirmed", updatedBooking.getUsername() != null ? updatedBooking.getUsername() : "unknown");
 		      return new ResponseEntity<Booking>(updatedBooking,HttpStatus.OK);
 		    }else {
 		      return new ResponseEntity<String>("Booking type is not found",HttpStatus.NOT_FOUND);
@@ -123,8 +133,15 @@ public class BookingController {
   
 
     @DeleteMapping("/{bookingId}")
-    public void deleteBooking(@PathVariable Long bookingId) {
+    public void deleteBooking(@PathVariable Long bookingId, Principal principal) {
+        Optional<Booking> bookingOpt = bookingService.findById(bookingId);
+        String guestName = bookingOpt.map(Booking::getGuestName).orElse("unknown guest");
+        String owner = bookingOpt.map(Booking::getUsername).orElse(null);
+
         bookingService.deleteBooking(bookingId);
+
+        String actor = principal != null ? principal.getName() : (owner != null ? owner : "guest");
+        activityLogService.log("BOOKING_CANCELLED", "Booking #"+bookingId+" ("+guestName+") cancelled by "+actor, actor);
     }
 
     @DeleteMapping("/{bookingId}/rooms/{roomId}")

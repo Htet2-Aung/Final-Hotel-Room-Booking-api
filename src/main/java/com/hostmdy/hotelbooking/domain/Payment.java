@@ -4,11 +4,13 @@ import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import lombok.Data;
@@ -31,9 +33,15 @@ public class Payment {
 	
 	private Long cardNo;
 	
-	private Integer cvc;
-	
 	private String cardType;
+
+	/** Last 6 digits of the wallet transaction ID (manual KPay/Wave Pay flow). */
+	private String transactionId;
+
+	/** Base64 data URL of the uploaded transfer slip (manual KPay/Wave Pay flow). */
+	@Lob
+	@Column(columnDefinition = "LONGTEXT")
+	private String slipImage;
 	
 	private LocalDate createdAt;
 	

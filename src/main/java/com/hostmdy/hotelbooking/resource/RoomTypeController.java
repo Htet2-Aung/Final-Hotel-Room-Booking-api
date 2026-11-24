@@ -1,5 +1,6 @@
 package com.hostmdy.hotelbooking.resource;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 import com.hostmdy.hotelbooking.domain.RoomType;
+import com.hostmdy.hotelbooking.service.ActivityLogService;
 import com.hostmdy.hotelbooking.service.MapValidationErrorService;
 import com.hostmdy.hotelbooking.service.RoomTypeService;
 
@@ -29,10 +31,11 @@ import lombok.RequiredArgsConstructor;
 @CrossOrigin(origins = {"http://localhost:3000"})
 public class RoomTypeController {
 	private final RoomTypeService roomTypeService;
+	private final ActivityLogService activityLogService;
 	private final MapValidationErrorService mapErrorService;
 	
 	@PostMapping("/create")
-	public ResponseEntity<?> createRoomType(@RequestBody RoomType roomType,BindingResult result) {
+	public ResponseEntity<?> createRoomType(@RequestBody RoomType roomType,BindingResult result, Principal principal) {
 		ResponseEntity<?> responseErrorObject = mapErrorService.validate(result);
 		
 		if(responseErrorObject != null)
@@ -40,6 +43,8 @@ public class RoomTypeController {
 		
 		RoomType createRoomType = roomTypeService.save(roomType);
 		
+		String actor = principal != null ? principal.getName() : "unknown";
+		activityLogService.log("ROOMTYPE_CREATED", "Room Type '"+createRoomType.getName()+"' (#"+createRoomType.getId()+", "+createRoomType.getPrice()+" MMK) created by "+actor, actor);
 		
 		return new ResponseEntity<RoomType>(createRoomType,HttpStatus.CREATED);
 		
@@ -66,20 +71,27 @@ public class RoomTypeController {
 	}
 	
 	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<String> deleteRoomTypeById(@PathVariable Long id){
+	public ResponseEntity<String> deleteRoomTypeById(@PathVariable Long id, Principal principal){
+		Optional<RoomType> roomTypeOpt = roomTypeService.findById(id);
+		String name = roomTypeOpt.map(RoomType::getName).orElse("unknown");
+		
 		roomTypeService.deleteById(id);
 		
-		if(roomTypeService.findById(id) != null)
-		return new ResponseEntity<String>("Can't delete",HttpStatus.NOT_FOUND);
+		String actor = principal != null ? principal.getName() : "admin";
+		
+		if(roomTypeService.findById(id).isPresent()) {
+			activityLogService.log("ROOMTYPE_DELETE_FAILED", "Could not delete Room Type '"+name+"' (#"+id+") - rooms may still be linked (by "+actor+")", actor);
+			return new ResponseEntity<String>("Can't delete",HttpStatus.NOT_FOUND);
+		}
+		
+		activityLogService.log("ROOMTYPE_DELETED", "Deleted Room Type '"+name+"' (#"+id+") by "+actor, actor);
 		
 		return new ResponseEntity<String>("Id:"+id+" is deleted!",HttpStatus.OK);
 	}
 	
 	@PostMapping("/update")
-	public ResponseEntity<?> updateRoomType(@Valid @RequestBody RoomType roomType, BindingResult result){
+	public ResponseEntity<?> updateRoomType(@Valid @RequestBody RoomType roomType, BindingResult result, Principal principal){
 		ResponseEntity<?> responseError = mapErrorService.validate(result);
-		
-		System.out.println("In room update: "+ roomType.getId());
 		
 		if(responseError != null)
 			return responseError;
@@ -87,6 +99,8 @@ public class RoomTypeController {
 		RoomType updateRoomType = roomTypeService.updateRoomType(roomType);
 		
 		if(updateRoomType != null) {
+			String actor = principal != null ? principal.getName() : "unknown";
+			activityLogService.log("ROOMTYPE_UPDATED", "Room Type '"+updateRoomType.getName()+"' (#"+updateRoomType.getId()+") updated by "+actor, actor);
 			return new ResponseEntity<RoomType>(updateRoomType,HttpStatus.OK);
 		}else {
 			return new ResponseEntity<String>("Room type is not found",HttpStatus.NOT_FOUND);
