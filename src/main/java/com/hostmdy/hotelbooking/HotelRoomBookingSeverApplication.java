@@ -97,31 +97,48 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
       standard.setImage("https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80");
       standard = roomTypeRepository.save(standard);
 
+      // One photo set per room type: image1 = bed, image2 = bath, image3 = toilet,
+      // matching the column titles of the admin Room List table.
+      String deluxeBed = "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80";
+      String deluxeBath = "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80";
+      String deluxeToilet = "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=800&q=80";
+      String standardBed = "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80";
+      String standardBath = "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80";
+      String standardToilet = "https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&w=800&q=80";
+
       Room deluxeRoom1 = new Room();
       deluxeRoom1.setDescription("<p>Deluxe Room 301 - high floor with panoramic sea view.</p>");
-      deluxeRoom1.setImage1("https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80");
-      deluxeRoom1.setImage2("https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80");
-      deluxeRoom1.setImage3("https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80");
+      deluxeRoom1.setImage1(deluxeBed);
+      deluxeRoom1.setImage2(deluxeBath);
+      deluxeRoom1.setImage3(deluxeToilet);
       deluxeRoom1.setRoomType(deluxe);
       roomRepository.save(deluxeRoom1);
 
       Room deluxeRoom2 = new Room();
       deluxeRoom2.setDescription("<p>Deluxe Room 302 - corner room with two balconies.</p>");
-      deluxeRoom2.setImage1("https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80");
-      deluxeRoom2.setImage2("https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80");
-      deluxeRoom2.setImage3("https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80");
+      deluxeRoom2.setImage1(deluxeBed);
+      deluxeRoom2.setImage2(deluxeBath);
+      deluxeRoom2.setImage3(deluxeToilet);
       deluxeRoom2.setRoomType(deluxe);
       roomRepository.save(deluxeRoom2);
 
       Room standardRoom1 = new Room();
       standardRoom1.setDescription("<p>Standard Room 101 - quiet garden-side room.</p>");
-      standardRoom1.setImage1("https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80");
-      standardRoom1.setImage2("https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=800&q=80");
-      standardRoom1.setImage3("https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80");
+      standardRoom1.setImage1(standardBed);
+      standardRoom1.setImage2(standardBath);
+      standardRoom1.setImage3(standardToilet);
       standardRoom1.setRoomType(standard);
       roomRepository.save(standardRoom1);
 
-      System.out.println("Seeded 2 room types and 3 sample rooms.");
+      Room standardRoom2 = new Room();
+      standardRoom2.setDescription("<p>Standard Room 102 - bright room near the lobby.</p>");
+      standardRoom2.setImage1(standardBed);
+      standardRoom2.setImage2(standardBath);
+      standardRoom2.setImage3(standardToilet);
+      standardRoom2.setRoomType(standard);
+      roomRepository.save(standardRoom2);
+
+      System.out.println("Seeded 2 room types and 4 sample rooms.");
     }
 
     // Always prints the current data state on startup, so you can see in the
