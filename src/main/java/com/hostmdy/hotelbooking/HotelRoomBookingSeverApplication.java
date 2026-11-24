@@ -86,7 +86,7 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
       deluxe.setPrice(120.0);
       deluxe.setDescription("<p>Spacious room with a king-size bed, sea view balcony and rain shower.</p>");
       deluxe.setFacilities("<ul><li>King-size bed</li><li>Sea view balcony</li><li>Free Wi-Fi</li><li>Air conditioning</li><li>Mini bar</li></ul>");
-      deluxe.setImage("https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80");
+      deluxe.setImage("https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Modern_double_bed_in_a_decorated_hotel_room.jpg/960px-Modern_double_bed_in_a_decorated_hotel_room.jpg");
       deluxe = roomTypeRepository.save(deluxe);
 
       RoomType standard = new RoomType();
@@ -94,17 +94,19 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
       standard.setPrice(60.0);
       standard.setDescription("<p>Cozy room with a queen-size bed, perfect for short city stays.</p>");
       standard.setFacilities("<ul><li>Queen-size bed</li><li>Free Wi-Fi</li><li>Air conditioning</li><li>Smart TV</li></ul>");
-      standard.setImage("https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80");
+      standard.setImage("https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/Bed_at_hotel_room_at_Hotel_Palace_Tallinn.jpg/960px-Bed_at_hotel_room_at_Hotel_Palace_Tallinn.jpg");
       standard = roomTypeRepository.save(standard);
 
-      // One photo set per room type: image1 = bed, image2 = bath, image3 = toilet,
-      // matching the column titles of the admin Room List table.
-      String deluxeBed = "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80";
-      String deluxeBath = "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80";
-      String deluxeToilet = "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=800&q=80";
-      String standardBed = "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80";
-      String standardBath = "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80";
-      String standardToilet = "https://images.unsplash.com/photo-1583417319070-4a69db38a482?auto=format&fit=crop&w=800&q=80";
+      // One photo set per room type, matched to the column titles of the admin
+      // Room List table: image1 = ROOM'S BED, image2 = ROOM'S BATH, image3 = ROOM'S TOILET.
+      // All 4 seeded rooms (2 Deluxe + 2 Standard) reuse their type's set, and every
+      // photo is a verified Wikimedia Commons image whose subject matches its column.
+      String deluxeBed = "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Modern_double_bed_in_a_decorated_hotel_room.jpg/960px-Modern_double_bed_in_a_decorated_hotel_room.jpg";
+      String deluxeBath = "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/09/Futu-Changsheng-Hotel-bathroom-0051.jpg/960px-Futu-Changsheng-Hotel-bathroom-0051.jpg";
+      String deluxeToilet = "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Premier_Inn_bathroom_toilet%2C_Horsham%2C_West_Sussex.jpg/960px-Premier_Inn_bathroom_toilet%2C_Horsham%2C_West_Sussex.jpg";
+      String standardBed = "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/Bed_at_hotel_room_at_Hotel_Palace_Tallinn.jpg/960px-Bed_at_hotel_room_at_Hotel_Palace_Tallinn.jpg";
+      String standardBath = "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Hotel_Barcelona_Catedral_Bathroom_2010.JPG/960px-Hotel_Barcelona_Catedral_Bathroom_2010.JPG";
+      String standardToilet = "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e5/USVI_IMG_5198_-_Minimalist_white_bathroom_with_light_wood_flooring_a_sleek_vanity_and_a_modern_toilet_featuring_clean_lines_and_soft_lighting.jpg/960px-USVI_IMG_5198_-_Minimalist_white_bathroom_with_light_wood_flooring_a_sleek_vanity_and_a_modern_toilet_featuring_clean_lines_and_soft_lighting.jpg";
 
       Room deluxeRoom1 = new Room();
       deluxeRoom1.setDescription("<p>Deluxe Room 301 - high floor with panoramic sea view.</p>");
