@@ -43,23 +43,10 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
 
   @Override
   public void run(String... args) throws Exception {
-    // Seeds demo accounts and sample rooms ONLY when the database is empty,
-    // so a fresh clone can be reviewed immediately. Existing data is never touched.
-    if (userService.findAllUser().isEmpty()) {
-      Role userRole = new Role();
-      userRole.setName("ROLE_USER");
-
-      User user = new User();
-      user.setFirstname("Mg");
-      user.setLastname("Mg");
-      user.setPhone("09-123456789");
-      user.setUsername("user@gmail.com");
-      user.setPassword("1234"); // createUser() encodes it with BCrypt
-
-      Set<UserRoles> userRoles = new HashSet<>();
-      userRoles.add(new UserRoles(user, userRole));
-      userService.createUser(user, userRoles);
-
+    // Seeds demo accounts and sample rooms wherever they are MISSING, so both a
+    // fresh clone and an older database end up with a working admin login.
+    // Each item is only created when absent - existing rows are never touched.
+    if (userService.findByUsername("admin@gmail.com").isEmpty()) {
       Role adminRole = new Role();
       adminRole.setName("ROLE_ADMIN");
 
@@ -73,8 +60,24 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
       Set<UserRoles> adminRoles = new HashSet<>();
       adminRoles.add(new UserRoles(admin, adminRole));
       userService.createUser(admin, adminRoles);
+      System.out.println("Seeded admin account -> admin@gmail.com / 5678");
+    }
 
-      System.out.println("Seeded demo users -> admin@gmail.com/5678 (admin), user@gmail.com/1234 (user)");
+    if (userService.findByUsername("user@gmail.com").isEmpty()) {
+      Role userRole = new Role();
+      userRole.setName("ROLE_USER");
+
+      User user = new User();
+      user.setFirstname("Mg");
+      user.setLastname("Mg");
+      user.setPhone("09-123456789");
+      user.setUsername("user@gmail.com");
+      user.setPassword("1234"); // createUser() encodes it with BCrypt
+
+      Set<UserRoles> userRoles = new HashSet<>();
+      userRoles.add(new UserRoles(user, userRole));
+      userService.createUser(user, userRoles);
+      System.out.println("Seeded demo user -> user@gmail.com / 1234");
     }
 
     if (roomTypeRepository.count() == 0) {
@@ -120,6 +123,12 @@ public class HotelRoomBookingSeverApplication implements CommandLineRunner {
 
       System.out.println("Seeded 2 room types and 3 sample rooms.");
     }
+
+    // Always prints the current data state on startup, so you can see in the
+    // console whether seeding already happened or was skipped.
+    System.out.println("Startup data check -> users: " + userService.findAllUser().size()
+        + ", room types: " + roomTypeRepository.count()
+        + ", rooms: " + roomRepository.count());
     // (Original one-time seed snippet kept below for reference.)
     
 //    Role role1 = new Role();
