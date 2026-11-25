@@ -74,7 +74,11 @@ public class BookingRoomServiceImpl implements BookingRoomService{
 		    
 		    List<Room> rooms = new ArrayList<>();
 		    for (BookingRoom bookingRoom : bookingRooms) {
-		        rooms.add(bookingRoom.getRoom());
+		        Room room = bookingRoom.getRoom();
+		        // a booking-room record may reference a deleted room; skip nulls
+		        if (room != null) {
+		            rooms.add(room);
+		        }
 		    }
 		    
 		    return rooms;
@@ -107,7 +111,11 @@ public class BookingRoomServiceImpl implements BookingRoomService{
 		    
 		    List<Room> rooms = new ArrayList<>();
 		    for (BookingRoom bookingRoom : bookingRooms) {
-		        rooms.add(bookingRoom.getRoom());
+		        Room room = bookingRoom.getRoom();
+		        // a booking-room record may reference a deleted room; skip nulls
+		        if (room != null) {
+		            rooms.add(room);
+		        }
 		    }
 	      
 	        return new BookingWithRoomDTO(booking, rooms);
